@@ -1,0 +1,7 @@
+node_modules/
+*.zip
+.DS_Store
+shots/
+# Never commit secrets
+.env
+*.key

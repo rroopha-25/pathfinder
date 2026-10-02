@@ -1,0 +1,16 @@
+{
+  "name": "pathfinder-extension",
+  "version": "0.4.0",
+  "private": true,
+  "description": "Chrome extension for international job seekers: sponsorship verdict with H-1B history, resume match + AI edits, and local contacts with AI-written LinkedIn messages.",
+  "scripts": {
+    "test": "node tests/extract.test.js && node tests/unit.test.js && node tests/location.test.js && node tests/panel.test.js",
+    "package": "cd pathfinder && zip -r ../pathfinder.zip . -x '*.DS_Store'",
+    "visuals": "node tests/visuals.js"
+  },
+  "devDependencies": {
+    "jsdom": "^25.0.0",
+    "playwright": "^1.56.0",
+    "@fontsource/inter": "^5.0.0"
+  }
+}
