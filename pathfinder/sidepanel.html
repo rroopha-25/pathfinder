@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pathfinder</title>
+  <link rel="stylesheet" href="sidepanel.css" />
+</head>
+<body>
+  <!-- Icon sprite: referenced with <svg><use href="#i-name"/></svg> -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="i-logo" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2.2 4.8-4.8 2.2 2.2-4.8z"/></symbol>
+      <symbol id="i-job" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2.5"/><path d="M8.5 7V5.5A2 2 0 0 1 10.5 3.5h3a2 2 0 0 1 2 2V7M3 12.5h18"/></symbol>
+      <symbol id="i-resume" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></symbol>
+      <symbol id="i-people" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M21.5 20a6.5 6.5 0 0 0-3.8-5.9"/></symbol>
+      <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></symbol>
+      <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.35-5.65L20 8.5"/><path d="M20 3.5v5h-5"/></symbol>
+      <symbol id="i-go" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12.5 2.7 2.7L16 9.5"/></symbol>
+      <symbol id="i-caution" viewBox="0 0 24 24"><path d="M10.3 4.2 2.8 17.5A2 2 0 0 0 4.5 20.5h15a2 2 0 0 0 1.7-3L13.7 4.2a2 2 0 0 0-3.4 0z"/><path d="M12 9.5v4M12 17h.01"/></symbol>
+      <symbol id="i-stop" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m5.7 5.7 12.6 12.6"/></symbol>
+      <symbol id="i-unknown" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 1 1 3.4 2.4c-.6.3-1 .8-1 1.5v.3M12 17h.01"/></symbol>
+      <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h8"/></symbol>
+      <symbol id="i-external" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></symbol>
+      <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3.5 13.9 9l5.6 1.9-5.6 1.9L12 18.5l-1.9-5.7-5.6-1.9L10.1 9z"/><path d="M19 3.5v3M17.5 5h3"/></symbol>
+      <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></symbol>
+      <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19.5 8.5a2.1 2.1 0 0 0-3-3L5 17z"/></symbol>
+      <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></symbol>
+      <symbol id="i-select" viewBox="0 0 24 24"><path d="M4 6h16M4 11h11M4 16h7"/><path d="m15 14 5 5M20 14v5h-5" /></symbol>
+      <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></symbol>
+      <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
+      <symbol id="i-chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+      <symbol id="i-post" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 9h8M8 13h8M8 17h4"/></symbol>
+      <symbol id="i-badge" viewBox="0 0 24 24"><rect x="4" y="3.5" width="16" height="17" rx="2.5"/><circle cx="12" cy="10" r="2.5"/><path d="M8 17a4 4 0 0 1 8 0"/></symbol>
+      <symbol id="i-school" viewBox="0 0 24 24"><path d="M2.5 9.5 12 5l9.5 4.5L12 14z"/><path d="M6.5 11.5V16c1.5 1.6 3.4 2.5 5.5 2.5s4-.9 5.5-2.5v-4.5"/></symbol>
+      <symbol id="i-building" viewBox="0 0 24 24"><rect x="5" y="3.5" width="14" height="17" rx="1.5"/><path d="M9 8h2M13 8h2M9 12h2M13 12h2M10.5 20.5v-4h3v4"/></symbol>
+    </defs>
+  </svg>
+
+  <header class="topbar">
+    <div class="brand"><svg class="ico brand-ico"><use href="#i-logo"/></svg><span>Pathfinder</span></div>
+    <div class="topbar-right">
+      <span id="site-badge" class="site-badge hidden"></span>
+      <button id="rescan" class="icon-btn" title="Re-scan this page" aria-label="Re-scan this page"><svg class="ico"><use href="#i-refresh"/></svg></button>
+    </div>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button data-tab="job" class="active" role="tab"><svg class="ico"><use href="#i-job"/></svg><span>Job</span></button>
+    <button data-tab="resume" role="tab"><svg class="ico"><use href="#i-resume"/></svg><span>Resume</span></button>
+    <button data-tab="people" role="tab"><svg class="ico"><use href="#i-people"/></svg><span>People</span></button>
+    <button data-tab="settings" role="tab" class="tab-icon-only" aria-label="Settings" title="Settings"><svg class="ico"><use href="#i-settings"/></svg></button>
+  </nav>
+
+  <main>
+    <!-- ================= JOB ================= -->
+    <div id="tab-job" class="tab">
+      <!-- Banner: page status (last job / can't read this site / not a job page) -->
+      <div id="page-banner" class="banner hidden">
+        <div id="page-banner-text"></div>
+        <div class="banner-actions">
+          <button id="banner-allow" class="btn btn-primary btn-sm hidden">Allow on all sites</button>
+          <button id="banner-select" class="btn btn-sm hidden"><svg class="ico"><use href="#i-select"/></svg>Use highlighted text</button>
+        </div>
+      </div>
+
+      <section id="state-empty" class="empty">
+        <div class="empty-ico"><svg class="ico"><use href="#i-job"/></svg></div>
+        <h2>Open any job posting</h2>
+        <p class="muted">Pathfinder reads the job automatically and tells you if it's worth your time.</p>
+        <div class="site-chips">
+          <span>LinkedIn</span><span>Indeed</span><span>Jobright</span><span>Google Jobs</span><span>Glassdoor</span>
+          <span>Greenhouse</span><span>Lever</span><span>Workday</span><span>Ashby</span><span>+ company career pages</span>
+        </div>
+        <div class="empty-help">
+          <p><strong>On a job page and nothing showed up?</strong> Highlight the job description on the page, then:</p>
+          <button id="empty-select" class="btn"><svg class="ico"><use href="#i-select"/></svg>Use highlighted text</button>
+          <button id="copy-debug" class="btn btn-ghost btn-sm">Copy diagnostics</button>
+        </div>
+      </section>
+
+      <section id="state-loading" class="loading hidden">
+        <div class="skeleton sk-hero"></div><div class="skeleton sk-tiles"></div><div class="skeleton sk-card"></div>
+      </section>
+
+      <section id="state-job" class="hidden">
+        <article class="hero">
+          <div id="co-avatar" class="avatar avatar-lg"></div>
+          <div class="hero-text">
+            <h1 id="job-title"></h1>
+            <div class="hero-sub"><span id="job-company"></span><span id="job-location-wrap"> · <span id="job-location"></span></span></div>
+            <div class="hero-meta">
+              <span id="job-source" class="source"></span>
+              <button id="edit-job" class="link-btn"><svg class="ico"><use href="#i-edit"/></svg>Edit</button>
+            </div>
+          </div>
+        </article>
+
+        <form id="edit-form" class="card edit-form hidden">
+          <label>Job title<input id="edit-title" /></label>
+          <label>Company <span class="hint">(exact legal name improves the H-1B match)</span><input id="edit-company" /></label>
+          <label>Location<input id="edit-location" /></label>
+          <div class="row-end"><button type="button" id="edit-cancel" class="btn btn-ghost btn-sm">Cancel</button><button type="submit" class="btn btn-primary btn-sm">Save</button></div>
+        </form>
+
+        <div class="tiles">
+          <button class="tile" data-go="job" id="tile-sponsor"><span class="tile-label">Sponsorship</span><span class="tile-value">—</span></button>
+          <button class="tile" data-go="resume" id="tile-match"><span class="tile-label">Match</span><span class="tile-value">—</span></button>
+          <button class="tile" data-go="people" id="tile-people"><span class="tile-label">Contacts</span><span class="tile-value">—</span></button>
+        </div>
+
+        <section id="verdict-card" class="card verdict">
+          <div class="verdict-top">
+            <span class="verdict-ico"><svg class="ico"><use id="verdict-ico-use" href="#i-unknown"/></svg></span>
+            <div>
+              <div class="eyebrow">Can you get sponsored here?</div>
+              <h2 id="verdict-headline"></h2>
+            </div>
+          </div>
+          <p id="verdict-explain" class="verdict-explain"></p>
+          <p id="verdict-history" class="verdict-history"></p>
+          <div id="verdict-action" class="next-step"></div>
+          <button id="copy-ask" class="btn btn-primary btn-block hidden"><svg class="ico"><use href="#i-copy"/></svg>Copy question for the recruiter</button>
+          <details id="jd-evidence" class="evidence hidden">
+            <summary>What the posting says</summary>
+            <ul id="sponsor-matches"></ul>
+          </details>
+          <p class="fineprint">Based on posting language and public USCIS data. Not legal advice.</p>
+        </section>
+
+        <section class="card">
+          <div class="card-head">
+            <h3>H-1B history</h3>
+            <div id="h1b-links" class="head-links"></div>
+          </div>
+          <div id="h1b-body"></div>
+        </section>
+      </section>
+    </div>
+
+    <!-- ================= RESUME ================= -->
+    <div id="tab-resume" class="tab hidden">
+      <section id="resume-empty" class="empty hidden">
+        <div class="empty-ico"><svg class="ico"><use href="#i-resume"/></svg></div>
+        <h2>Add your resume</h2>
+        <p class="muted">PDF, Word or text. It never leaves this browser.</p>
+        <label class="dropzone"><svg class="ico"><use href="#i-upload"/></svg><span>Choose a file</span><input type="file" id="resume-file-quick" accept=".pdf,.docx,.txt,.md" /></label>
+        <p id="resume-quick-status" class="status"></p>
+      </section>
+      <section id="resume-nojob" class="empty hidden">
+        <div class="empty-ico"><svg class="ico"><use href="#i-job"/></svg></div>
+        <h2>Open a job to score against</h2>
+        <p class="muted">Your resume is ready. Open any job posting.</p>
+      </section>
+      <section id="resume-body" class="hidden">
+        <div class="card score-card">
+          <div id="score-ring" class="ring"><div class="ring-inner"><span id="score-num">0</span><small>/100</small></div></div>
+          <div class="score-side">
+            <div id="score-label" class="score-label"></div>
+            <div class="meters">
+              <div class="meter"><span>Keywords</span><div class="meter-bar"><i id="m-kw"></i></div><b id="m-kw-v"></b></div>
+              <div class="meter"><span>Title fit</span><div class="meter-bar"><i id="m-title"></i></div><b id="m-title-v"></b></div>
+              <div class="meter"><span>Results</span><div class="meter-bar"><i id="m-impact"></i></div><b id="m-impact-v"></b></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Missing from your resume</h3>
+          <div id="kw-missing" class="chips"></div>
+          <h3 class="mt">Already matched</h3>
+          <div id="kw-matched" class="chips"></div>
+          <p id="score-resume-name" class="fineprint"></p>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <h3>AI edit suggestions</h3>
+            <button id="ai-run" class="btn btn-primary btn-sm"><svg class="ico"><use href="#i-spark"/></svg>Suggest edits</button>
+          </div>
+          <p id="ai-status" class="muted small">Line-by-line changes for this job, using only what's already on your resume.</p>
+          <div id="ai-results"></div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ================= PEOPLE ================= -->
+    <div id="tab-people" class="tab hidden">
+      <section id="people-nojob" class="empty">
+        <div class="empty-ico"><svg class="ico"><use href="#i-people"/></svg></div>
+        <h2>Open a job first</h2>
+        <p class="muted">The people finder works for the company of the job you're viewing.</p>
+      </section>
+      <section id="people-body" class="hidden">
+        <div class="card loc-card">
+          <div class="card-head">
+            <h3><svg class="ico"><use href="#i-pin"/></svg>Location</h3>
+            <span id="loc-summary" class="muted small"></span>
+          </div>
+          <div class="loc-row">
+            <input id="loc-input" list="loc-options" placeholder="City, metro or state (e.g. Phoenix, AZ)" autocomplete="off" />
+            <datalist id="loc-options"></datalist>
+          </div>
+          <div class="loc-actions">
+            <button id="loc-use-job" class="chip-btn hidden"></button>
+            <button id="loc-anywhere" class="chip-btn">Anywhere</button>
+            <label class="switch"><input type="checkbox" id="loc-strict" checked /><span></span>Only show this area</label>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>Find people at <span id="people-company"></span></h3></div>
+          <div class="search-list">
+            <button data-search="posts" class="search-item"><svg class="ico"><use href="#i-post"/></svg><span><b>Recent hiring posts</b><small>Most likely to reply</small></span><svg class="ico chev"><use href="#i-chev"/></svg></button>
+            <button data-search="recruiters" class="search-item"><svg class="ico"><use href="#i-badge"/></svg><span><b>Recruiters</b><small id="s-rec-sub">At this company</small></span><svg class="ico chev"><use href="#i-chev"/></svg></button>
+            <button data-search="team" class="search-item"><svg class="ico"><use href="#i-people"/></svg><span><b>People in this function</b><small id="s-team-sub">Likely teammates or managers</small></span><svg class="ico chev"><use href="#i-chev"/></svg></button>
+            <button data-search="alumni" class="search-item"><svg class="ico"><use href="#i-school"/></svg><span><b>Alumni from my school</b><small id="s-alumni-sub">Add your school in Settings</small></span><svg class="ico chev"><use href="#i-chev"/></svg></button>
+            <button data-search="company" class="search-item"><svg class="ico"><use href="#i-building"/></svg><span><b>Company people page</b><small>Everyone at the company</small></span><svg class="ico chev"><use href="#i-chev"/></svg></button>
+          </div>
+          <p id="people-status" class="status"></p>
+          <button id="people-scan" class="btn btn-ghost btn-sm">Scan the current LinkedIn page</button>
+        </div>
+
+        <div id="people-list"></div>
+        <button id="people-clear" class="btn btn-ghost btn-sm hidden">Clear saved people for this company</button>
+      </section>
+    </div>
+
+    <!-- ================= SETTINGS ================= -->
+    <div id="tab-settings" class="tab hidden">
+      <section class="card">
+        <h3>Your resume</h3>
+        <label class="dropzone"><svg class="ico"><use href="#i-upload"/></svg><span id="resume-drop-label">Choose a PDF, Word or text file</span><input type="file" id="resume-file" accept=".pdf,.docx,.txt,.md" /></label>
+        <p id="resume-status" class="status"></p>
+      </section>
+
+      <section class="card">
+        <h3>About you</h3>
+        <p class="muted small">Filled in from your resume when you upload it. Used to rank contacts and personalize messages.</p>
+        <label>School<input id="set-school" placeholder="e.g. Arizona State University" /></label>
+        <label>Home country <span class="hint">(where you're from, not where you live)</span><input id="set-country" placeholder="e.g. India" /></label>
+        <label>Past employers <span class="hint">(comma separated)</span><input id="set-employers" placeholder="e.g. Deloitte, Oracle" /></label>
+        <label>My background in one sentence <span class="hint">(used in LinkedIn messages)</span><input id="set-mybg" placeholder="e.g. Policy analyst at Uber, moving into AI product work" /></label>
+      </section>
+
+      <section class="card">
+        <h3>AI suggestions</h3>
+        <p id="ai-plan" class="muted small"></p>
+        <label>Your own Claude API key <span class="hint">(optional)</span><input id="set-apikey" type="password" placeholder="sk-ant-..." autocomplete="off" /></label>
+        <label>Model<input id="set-model" placeholder="claude-sonnet-5-5" /></label>
+        <p class="muted small">With your own key (console.anthropic.com) AI is unlimited and billed to you. The key is stored only in this browser.</p>
+      </section>
+
+      <section class="card">
+        <h3>H-1B data <span class="hint">(one-time setup)</span></h3>
+        <ol class="steps">
+          <li>Open the <a href="https://www.uscis.gov/tools/reports-and-studies/h-1b-employer-data-hub" target="_blank">USCIS H-1B Employer Data Hub</a></li>
+          <li>Download the CSV for the last 2–3 fiscal years</li>
+          <li>Select all the files here</li>
+        </ol>
+        <label class="dropzone"><svg class="ico"><use href="#i-upload"/></svg><span>Choose CSV files</span><input type="file" id="h1b-file" accept=".csv,.txt,.tsv" multiple /></label>
+        <p id="h1b-status" class="status"></p>
+      </section>
+
+      <section class="card">
+        <h3>Where Pathfinder works</h3>
+        <p class="muted small">Built in: LinkedIn, Indeed, Jobright, Google Jobs, Glassdoor, Greenhouse, Lever, Workday, Ashby, SmartRecruiters, iCIMS, ZipRecruiter, Dice, Wellfound, Handshake.</p>
+        <div class="perm-row">
+          <span id="perm-status" class="pill"></span>
+          <button id="perm-all" class="btn btn-sm">Allow on all company career sites</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h3>Your data &amp; metrics</h3>
+        <div id="metrics-summary" class="metrics"></div>
+        <div class="row-end">
+          <button id="clear-all" class="btn btn-ghost btn-sm danger">Clear all data</button>
+          <button id="copy-metrics" class="btn btn-sm"><svg class="ico"><use href="#i-copy"/></svg>Copy metrics</button>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="foot">
+    <span id="stats"></span>
+    <span class="foot-private"><svg class="ico"><use href="#i-lock"/></svg>Private to this device</span>
+  </footer>
+
+  <script src="lib/mammoth.browser.min.js"></script>
+  <script src="extract.js"></script>
+  <script src="sponsorship.js"></script>
+  <script src="h1b.js"></script>
+  <script src="verdict.js"></script>
+  <script src="location.js"></script>
+  <script src="people.js"></script>
+  <script src="resume.js"></script>
+  <script src="prompts.js"></script>
+  <script src="config.js"></script>
+  <script src="ai.js"></script>
+  <script src="sidepanel.js"></script>
+</body>
+</html>
