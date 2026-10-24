@@ -5,7 +5,7 @@
 - [x] Free AI service (Cloudflare Worker, 5 runs/user/day, global cap) — waiting on deploy + Worker URL
 - [ ] Built-in USCIS H-1B data (no CSV import) — waiting on the USCIS CSV files
 
-## Next: Career-page job matching (suggested by a tester)
+## Done in v1.1: Career-page job matching (suggested by a tester)
 **Idea:** When a user opens a company's careers page, Pathfinder scans all the listed jobs and highlights the ones that match their saved resume at **75% or higher**, instead of the user opening each job one by one.
 
 Notes for building it:

@@ -235,7 +235,8 @@ $('copy-ask').addEventListener('click', () => {
   logEvent('recruiter_question_copied', { key: state.job.key, level: state.verdict?.level });
 });
 $('copy-debug').addEventListener('click', () => {
-  copyText($('copy-debug'), JSON.stringify(state.lastDebug || { note: 'No scan yet' }, null, 2));
+  const version = (chrome.runtime.getManifest ? chrome.runtime.getManifest().version : '?');
+  copyText($('copy-debug'), JSON.stringify({ version, ...(state.lastDebug || { note: 'No scan yet' }) }, null, 2));
 });
 
 // ---------- Edit title / company / location ----------
@@ -414,6 +415,8 @@ async function handleResumeFile(file, statusEl) {
     autofillProfile(text);
     state.lastScoredKey = '';
     renderResumeTab();
+    match.cache = {};
+    if (match.listing) showMatchCard(match.listing);
   } catch (err) {
     statusEl.className = 'status err';
     statusEl.textContent = err.message;
@@ -912,6 +915,161 @@ $('clear-all').addEventListener('click', async () => {
 });
 
 // ============================================================
+//  CAREER PAGES: best jobs on this page for your resume
+// ============================================================
+const match = { listing: null, results: null, min: 75, hideSkip: false, running: false, cache: {} };
+
+async function readListings(tab) {
+  let raw;
+  try {
+    raw = await chrome.scripting.executeScript({ target: { tabId: tab.id, allFrames: true }, func: findJobListings });
+  } catch (err) {
+    raw = await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: findJobListings });
+  }
+  raw = raw.slice().sort((a, b) => (a.frameId || 0) - (b.frameId || 0));
+  const frames = raw.map((r) => r.result).filter(Boolean);
+  const top = frames[0];
+  if (!top || top.board) return null;
+  const seen = new Set();
+  const links = frames.flatMap((f) => f.links).filter((l) => !seen.has(l.url) && seen.add(l.url));
+  const ats = (frames.find((f) => f.ats) || {}).ats || null;
+  state.lastDebug = { ...(state.lastDebug || {}), listing: {
+    frames: frames.length, ats, jobLinks: links.length, sample: links.slice(0, 5).map((l) => `${l.title} → ${l.url}`),
+    anchors: frames.map((f) => f.anchors), apiHosts: [...new Set(frames.flatMap((f) => f.apiHosts || []))],
+  } };
+  if (!ats && links.length < 3) return null;
+  return { url: top.url, host: top.host, title: top.title, ats, links };
+}
+
+function companyFromListing(l) {
+  const t = (l.title || '').split(/\s[|–—-]\s/).map((x) => x.trim()).filter(Boolean);
+  const named = t.find((x) => !/careers?|jobs?|openings|positions|work with us|join/i.test(x));
+  return named || (l.host || '').replace(/^(www|careers|jobs|boards)\./, '').split('.')[0].replace(/\b\w/, (c) => c.toUpperCase());
+}
+
+function showMatchCard(listing) {
+  match.listing = listing;
+  const card = $('match-card');
+  if (!listing) { card.classList.add('hidden'); return; }
+  card.classList.remove('hidden');
+  const n = listing.links.length;
+  $('match-count').textContent = listing.ats && !n ? 'Job board' : `${n} job${n === 1 ? '' : 's'} on page`;
+  const cached = match.cache[listing.url];
+  if (cached) { match.results = cached; renderMatches(); return; }
+  match.results = null;
+  $('match-list').innerHTML = '';
+  $('match-filters').classList.add('hidden');
+  $('match-note').classList.add('hidden');
+  $('match-progress').classList.add('hidden');
+  $('match-run').classList.remove('hidden');
+  $('match-run').disabled = false;
+  if (!state.resume) {
+    $('match-intro').textContent = 'This looks like a careers page. Add your resume and Pathfinder will check every job here and show the ones that fit you best.';
+    $('match-run').innerHTML = '<svg class="ico"><use href="#i-upload"/></svg>Add your resume first';
+  } else {
+    $('match-intro').textContent = 'Pathfinder can check every job on this page against your resume and show your best matches (75%+), with a sponsorship check for each.';
+    $('match-run').innerHTML = '<svg class="ico"><use href="#i-search"/></svg>Find my best matches';
+  }
+}
+
+function setMatchProgress(done, total, label) {
+  $('match-progress').classList.remove('hidden');
+  $('match-progress').querySelector('.bar span').style.width = (total ? Math.round((done / total) * 100) : 10) + '%';
+  $('match-progress').querySelector('p').textContent = label || `Reading jobs… ${done} of ${total}`;
+}
+
+async function runMatches() {
+  const listing = match.listing;
+  if (!listing || match.running) return;
+  if (!state.resume) { showTab('settings'); $('resume-file').scrollIntoView?.({ block: 'center' }); return; }
+  // Permission must be asked right away (inside the click), before any other await.
+  const ats = listing.ats || atsFromLinks(listing.links);
+  const origins = ats ? [] : linkOrigins(listing.links.slice(0, MATCH_LIMITS.pages));
+  if (origins.length) {
+    const ok = await chrome.permissions.request({ origins }).catch(() => false);
+    if (!ok) { toast('Pathfinder needs permission to read the job pages on this site.'); logEvent('career_match_denied', { host: listing.host }); return; }
+  }
+  match.running = true;
+  $('match-run').classList.add('hidden');
+  setMatchProgress(0, 0, ats ? `Reading all jobs from ${ats.type[0].toUpperCase() + ats.type.slice(1)}…` : 'Reading jobs…');
+  const started = Date.now();
+  try {
+    const fallbackCompany = companyFromListing(listing);
+    const { jobs, source, total } = await collectJobs(listing, { onProgress: (d, t) => setMatchProgress(d, t), fallbackCompany });
+    setMatchProgress(1, 1, 'Scoring against your resume…');
+    const ranked = rankJobs(jobs, state.resume.text);
+    // Sponsorship: posting language + the company's H-1B history (looked up once per company).
+    const h1bCache = {};
+    for (const j of ranked) {
+      const co = j.company || fallbackCompany;
+      if (!(co in h1bCache)) h1bCache[co] = co ? await lookupH1B(co) : { status: 'no_data' };
+      j.verdict = sponsorshipVerdict(j.sponsor, h1bCache[co], co || 'This company').level;
+    }
+    match.results = { jobs: ranked, source, total, url: listing.url };
+    match.cache[listing.url] = match.results;
+    renderMatches();
+    const scored = ranked.filter((j) => j.readable);
+    logEvent('career_matches_run', {
+      host: listing.host, source, total, read: jobs.length, scored: scored.length,
+      strong: scored.filter((j) => j.score >= 75).length, top: scored[0] ? scored[0].score : null, ms: Date.now() - started,
+    });
+  } catch (err) {
+    $('match-run').classList.remove('hidden');
+    $('match-note').textContent = 'Could not read the jobs on this page: ' + err.message;
+    $('match-note').classList.remove('hidden');
+  } finally {
+    match.running = false;
+    $('match-progress').classList.add('hidden');
+  }
+}
+
+const VERDICT_CHIP = { go: ['ok', 'Sponsorship: likely yes'], caution: ['warn', 'Sponsorship: ask first'], stop: ['miss', 'Says no sponsorship'], unknown: ['', 'Sponsorship: check'] };
+
+function renderMatches() {
+  const r = match.results;
+  if (!r) return;
+  $('match-run').classList.add('hidden');
+  $('match-filters').classList.remove('hidden');
+  document.querySelectorAll('#match-filters [data-min]').forEach((b) => b.classList.toggle('on', +b.dataset.min === match.min));
+  $('match-hide-skip').classList.toggle('on', match.hideSkip);
+  const scored = r.jobs.filter((j) => j.readable);
+  const strong = scored.filter((j) => j.score >= 75).length;
+  $('match-count').textContent = `${strong} strong match${strong === 1 ? '' : 'es'}`;
+  $('match-intro').textContent = `Checked ${scored.length} job${scored.length === 1 ? '' : 's'} against your resume${r.total > r.jobs.length ? ` (first ${r.jobs.length} of ${r.total})` : ''}. Tap a job to open it and get the full check.`;
+
+  let list = r.jobs.filter((j) => (match.min ? j.readable && j.score >= match.min : true));
+  if (match.hideSkip) list = list.filter((j) => j.verdict !== 'stop');
+  let note = '';
+  if (!list.length && scored.length) {
+    list = scored.filter((j) => !match.hideSkip || j.verdict !== 'stop').slice(0, 5);
+    note = `No ${match.min}%+ matches on this page. Your closest ones:`;
+  } else if (!scored.length) {
+    note = "These job pages load their text in a way Pathfinder can't read in the background. Open a job and Pathfinder will check it.";
+  }
+  $('match-note').textContent = note;
+  $('match-note').classList.toggle('hidden', !note);
+
+  $('match-list').innerHTML = list.slice(0, 50).map((j, i) => {
+    const sc = j.readable ? `<div class="match-score ${j.score >= 75 ? 'hi' : j.score >= 55 ? 'mid' : ''}">${j.score}</div>` : '<div class="match-score na">n/a</div>';
+    const [cls, label] = VERDICT_CHIP[j.verdict] || VERDICT_CHIP.unknown;
+    const chips = [`<span class="chip ${cls}">${esc(label)}</span>`]
+      .concat(j.missing.map((m) => `<span class="chip miss">Missing: ${esc(kwLabel(m))}</span>`)).join('');
+    return `<li class="match-row"><div>${sc}</div><div>
+      <a class="match-title" href="${esc(j.url)}" target="_blank" rel="noopener" data-i="${i}">${esc(j.title || 'Untitled role')}<svg class="ico"><use href="#i-external"/></svg></a>
+      <div class="match-meta">${esc([j.location, j.company].filter(Boolean).join(' · '))}</div>
+      <div class="chips">${chips}</div></div></li>`;
+  }).join('');
+  $('match-list').querySelectorAll('.match-title').forEach((a) => a.addEventListener('click', () => {
+    const j = list[+a.dataset.i];
+    logEvent('career_match_opened', { score: j.score, verdict: j.verdict, rank: +a.dataset.i + 1 });
+  }));
+}
+
+$('match-run').addEventListener('click', runMatches);
+document.querySelectorAll('#match-filters [data-min]').forEach((b) => b.addEventListener('click', () => { match.min = +b.dataset.min; renderMatches(); }));
+$('match-hide-skip').addEventListener('click', () => { match.hideSkip = !match.hideSkip; renderMatches(); });
+
+// ============================================================
 //  Reading the active tab (any site)
 // ============================================================
 async function getActiveTab() {
@@ -964,6 +1122,7 @@ async function scan(trigger) {
 async function doScan(trigger) {
   const tab = await getActiveTab();
   if (!tab || !tab.url || !/^https?:/.test(tab.url)) {
+    showMatchCard(null);
     setBanner(state.job ? 'last-job' : null);
     if (!state.job) showJobState('empty');
     return;
@@ -987,6 +1146,7 @@ async function doScan(trigger) {
   } catch (err) {
     const host = (() => { try { return new URL(tab.url).hostname.replace(/^www\./, ''); } catch (e) { return ''; } })();
     state.lastDebug = { url: tab.url, error: err.message };
+    showMatchCard(null);
     if (/cannot access|permission|not allowed|host/i.test(err.message)) setBanner('no-access', host);
     if (!state.job) showJobState('empty');
     logEvent('extract_blocked', { host, message: err.message.slice(0, 120) });
@@ -996,7 +1156,17 @@ async function doScan(trigger) {
   state.lastDebug = { url: tab.url, frames: results.length, ...(best && best.debug) };
   if (best && best.isJob) {
     setBanner(null);
+    showMatchCard(null);
     await acceptJob(best, trigger);
+    return;
+  }
+  // Not a single job: is it a careers page listing many jobs?
+  const listing = await readListings(tab).catch((err) => { state.lastDebug = { ...(state.lastDebug || {}), listingError: err.message }; return null; });
+  showMatchCard(listing);
+  if (listing) {
+    if (!state.job) { setBanner(null); showJobState('empty'); $('state-empty').classList.add('hidden'); }
+    else { setBanner(null); showJobState('job'); }
+    if (match.lastLogged !== listing.url) { match.lastLogged = listing.url; logEvent('career_page_detected', { host: listing.host, links: listing.links.length, ats: listing.ats ? listing.ats.type : null }); }
     return;
   }
   if (state.job) { setBanner('last-job'); showJobState('job'); }

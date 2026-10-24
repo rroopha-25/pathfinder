@@ -14,6 +14,11 @@ const PAGES = {
     'https://www.indeed.com/viewjob?jk=abc123', 'Product Deployment Specialist - Phoenix, AZ | Indeed.com'],
   blog: [`<h1>Weekend reading</h1><p>Nothing to see.</p>`, 'https://news.example.com/a', 'News'],
   weird: [`<div>Custom widget job page</div>`, 'https://careers.weirdco.com/x', 'Careers | WeirdCo'],
+  careers: [`<h1>Open roles at Confido</h1><ul>
+<li class="job"><a href="/careers/jobs/1-deployment"><h3>Deployment Specialist</h3></a><span class="location">Phoenix, AZ</span></li>
+<li class="job"><a href="/careers/jobs/2-cad"><h3>CAD Designer</h3></a><span class="location">Austin, TX</span></li>
+<li class="job"><a href="/careers/jobs/3-sales"><h3>Sales Development Rep</h3></a><span class="location">Remote</span></li>
+</ul>`, 'https://careers.confido.com/', 'Careers | Confido'],
   people: [`
 <ul>
 <li><a href="https://www.linkedin.com/in/sam-phx/"><span aria-hidden="true">Sam Patel</span></a>
@@ -66,7 +71,7 @@ const aiResponse = { content: [{ type: 'text', text: JSON.stringify({
   summary_line: { original: '', revised: 'Operations analyst with enterprise rollout experience.' },
   gaps: [{ keyword: 'Salesforce', advice: 'Mention CRM work in your cover letter.' }] }) }], usage: { input_tokens: 2500, output_tokens: 600 } };
 
-const fetchBodies = []; let failNext = false;
+const fetchBodies = []; const careerFetches = []; let failNext = false;
 const outreachResponse = { content: [{ type: 'thinking', thinking: 'planning' }, { type: 'text', text: JSON.stringify({
   connection_note: "Hi Sam, fellow Phoenix person here! I'm looking at the Product Deployment Specialist role at Confido. Curious: what separates people who ramp fastest on the deployment team?",
   message: "Hi Sam, I noticed you recruit for Confido's deployment teams here in Phoenix. I'm looking at the Product Deployment Specialist role and I've spent the last few years rolling out tools to ops teams. I'm curious how the team splits time between onsite customer work and internal coordination. Would love your take if you have a minute. Thanks either way!",
@@ -80,7 +85,17 @@ const navigate = (key, sel) => { page = makePage(key, sel); listeners.updated.fo
       w.chrome = chromeMock;
       Object.defineProperty(w.navigator, 'clipboard', { value: { writeText: async (t) => clip.push(t) } });
       w.fetch = async (url, opts) => {
+        if (/careers\.confido\.com\/careers\/jobs\//.test(url)) {
+          careerFetches.push(url);
+          const id = url.match(/jobs\/(\d)/)[1];
+          const desc = { 1: JD + '<p>Tools: SQL, Excel, Salesforce, Jira, Agile, implementation, onboarding, stakeholders, deployments.</p>', 2: '<p>' + 'SolidWorks, GD&amp;T, AutoCAD drafting, tolerance analysis, sheet metal, injection molding. '.repeat(5) + '</p>', 3: '<p>Short.</p>' }[id];
+          return { ok: true, status: 200, text: async () => `<html><body><main><h1>Job ${id}</h1>${desc}</main></body></html>` };
+        }
         const body = JSON.parse(opts.body); fetchBodies.push(body);
+        if (/\/v1\/ai$/.test(url)) {
+          const txt = body.kind === 'outreach' ? outreachResponse.content[1].text : aiResponse.content[0].text;
+          return { ok: true, status: 200, json: async () => ({ text: txt, usage: {}, remaining: 4 }) };
+        }
         if (failNext) { failNext = false; return { ok: true, status: 200, json: async () => ({ content: [{ type: 'thinking', thinking: '...' }], stop_reason: 'max_tokens', usage: {} }) }; }
         if (/LinkedIn outreach/.test(body.system)) return { ok: true, status: 200, json: async () => outreachResponse };
         return { ok: true, status: 200, json: async () => aiResponse };
@@ -225,17 +240,41 @@ const navigate = (key, sel) => { page = makePage(key, sel); listeners.updated.fo
   const oc = mem.events.filter((e) => e.name === 'outreach_copied').at(-1).props;
   assert.ok(oc.edited && oc.format === 'connection_note' && oc.ai);
   ok('Drafts: switch note/message, edit text, 300-char counter turns red, copy logs whether you edited it');
-  // No API key → template fallback
+  // No API key → free Pathfinder AI service (no key needed)
   $('set-apikey').value = ''; $('set-apikey').dispatchEvent(new w.Event('change')); await sleep(30);
   const rajCard = [...$('people-list').querySelectorAll('.person')].find((c) => c.textContent.includes('Raj Iyer'));
-  rajCard.querySelector('.msg').click(); await sleep(30);
-  const fb = rajCard.querySelector('.draft-text').value;
-  assert.ok(fb.startsWith('Hi Raj,') && fb.length <= 300 && fb.includes('?') && !/sponsor|visa/i.test(fb), fb);
-  assert.ok(rajCard.textContent.includes('Add your Claude API key'));
-  ok(`No key: short humble fallback with one question (${fb.length} chars)`);
+  const before = fetchBodies.length;
+  rajCard.querySelector('.msg').click(); await sleep(60);
+  const sent = fetchBodies.slice(before).at(-1);
+  assert.ok(sent && sent.kind === 'outreach' && sent.installId && !sent.system && /Raj/.test(sent.user), 'sent to the free service with kind + installId only');
+  assert.ok(rajCard.querySelector('.draft-text').value.startsWith('Hi '));
+  ok('No key: message drafted through the free Pathfinder AI service (kind + install ID, no key)');
   $('loc-anywhere').click(); await sleep(60);
   assert.strictEqual(mem.settings.peopleLocation, '');
   ok('"Anywhere" clears the location filter');
+
+  // 9b. Careers page: best matches for the resume
+  navigate('careers'); await until(() => !$('match-card').classList.contains('hidden'), 'match card');
+  assert.strictEqual($('match-count').textContent, '3 jobs on page');
+  assert.ok(/Find my best matches/.test($('match-run').textContent));
+  $('match-run').click();
+  await until(() => $('match-list').querySelectorAll('.match-row').length > 0 || !$('match-note').classList.contains('hidden'), 'matches rendered');
+  assert.strictEqual(careerFetches.length, 3);
+  const rows = [...$('match-list').querySelectorAll('.match-row')];
+  const firstTitle = rows[0].querySelector('.match-title').textContent;
+  assert.ok(firstTitle.includes('Deployment Specialist'), firstTitle);
+  assert.ok(rows[0].textContent.includes('Phoenix, AZ'));
+  assert.ok(rows[0].querySelector('.match-title').getAttribute('href') === 'https://careers.confido.com/careers/jobs/1-deployment');
+  // The JD says "without current or future sponsorship" + Confido sponsors (imported H-1B data) → ask first
+  assert.ok(rows[0].textContent.includes('Sponsorship: ask first'), rows[0].textContent);
+  $('match-filters').querySelector('[data-min="0"]').click(); await sleep(20);
+  const all = [...$('match-list').querySelectorAll('.match-row')];
+  assert.strictEqual(all.length, 3);
+  assert.ok(all[2].querySelector('.match-score').textContent === 'n/a', 'unreadable job ranked last');
+  const run = mem.events.filter((e) => e.name === 'career_matches_run').at(-1).props;
+  assert.ok(run.read === 3 && run.scored === 2 && run.source === 'pages', JSON.stringify(run));
+  console.log(`   scores: ${all.map((r) => r.querySelector('.match-score').textContent).join(', ')} | top: ${rows[0].querySelector('.match-score').textContent}`);
+  ok('Careers page: card appears, reads 3 job pages, ranks the best fit first with a sponsorship check, filters work');
 
   // 10. Metrics
   const ev = mem.events.map((e) => e.name);

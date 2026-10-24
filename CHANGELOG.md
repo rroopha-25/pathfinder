@@ -2,7 +2,9 @@
 
 ## 1.1.0 (in progress)
 - Free AI for everyone through the Pathfinder AI service: no personal API key needed (5 free runs a day). Your own key still works with no limit.
+- **Career-page matching:** on any company careers page, Pathfinder reads every job, scores each against your resume and shows 75%+ matches first, with a sponsorship check (Greenhouse, Lever, Ashby, Workday, SmartRecruiters and most career sites)
 - Uploading a resume auto-fills school, past employers and background
+- Recognizes "we sponsor H-1B" wording
 - Built-in USCIS H-1B data (coming in this release: no CSV import)
 
 ## 1.0.0

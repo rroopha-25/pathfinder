@@ -35,6 +35,7 @@ The answers already exist: sponsorship history is public USCIS data, the job des
 - ⏱️ **Know in 5 seconds if a job is worth it.** No more tailoring a resume for a company that never sponsors.
 - 🔍 **Find the hidden yes.** Many postings say "no sponsorship" while the company files hundreds of H-1Bs a year. Pathfinder spots this and gives you the exact question to ask the recruiter.
 - 📈 **Get past the resume filter.** See which keywords this job wants that your resume is missing, and get honest line edits that never invent experience.
+- 🎯 **Find your best-fit jobs in seconds.** On any careers page, see which roles match your resume at 75%+ instead of opening them one by one.
 - 🤝 **Message people who reply.** Find recruiters and team members who are active, in your city, and share your school, country or past employer, with a message that sounds like you, not a template.
 - 🔒 **Your data stays with you.** No account, no tracking. Your resume never leaves your browser unless you ask for AI help.
 - 💸 **Free.** Built by an international student, for international students.
@@ -90,6 +91,13 @@ Pathfinder reads the posting **and** checks the company's real H-1B filings from
   - a **connection note** (with a live 300-character counter)
   - a **4–6 sentence message** that asks one smart question, with no bragging and no desperation
 - You edit and send it yourself. **Pathfinder never sends anything automatically.**
+
+### 4. Best jobs for you on any careers page
+Open a company's careers page and click **Find my best matches**. Pathfinder reads every job listed, scores each one against your resume, and shows your **75%+ matches first**, each with a sponsorship check and the required skills you're missing.
+
+- Reads whole job boards in one go on **Greenhouse, Lever, Ashby, Workday and SmartRecruiters**, including boards embedded in a company's own site.
+- On other career pages, reads each linked job politely (3 at a time) or uses the description already on the page.
+- Filters: 75%+, 60%+ or all; hide jobs that say "no sponsorship". Runs only when you click.
 
 ### At a glance
 <img src="docs/screenshots/feature-tiles.png" width="400">
@@ -184,6 +192,7 @@ flowchart TB
 | `resume.js` | Reads PDF/Word resumes locally (pdf.js, mammoth) and scores them |
 | `people.js` · `location.js` | Reads LinkedIn people, ranks by activity and fit, matches metro areas |
 | `prompts.js` | **All AI prompts**, including the LinkedIn DM template. Edit these to tune the AI. |
+| `careers.js` | Career-page matching: finds job links and ATS boards, reads jobs politely, ranks them against your resume |
 | `ai.js` | Claude calls (your key or the free service) with JSON-schema structured output and clear errors |
 | `server/` | The free AI service: a Cloudflare Worker with per-user daily limits. See `server/DEPLOY.md` |
 | `sidepanel.*` | The UI: Job, Resume, People and Settings tabs, light and dark mode |
@@ -230,9 +239,9 @@ npm run package # zips the extension for upload
 - [x] Location-aware people finder + AI LinkedIn messages
 - [x] Chrome Web Store release
 - [x] Resume auto-fills your profile
+- [x] Career-page matching: every job on a careers page scored against your resume, 75%+ first (v1.1)
 - [ ] Free AI for everyone, no personal API key (v1.1)
 - [ ] Built-in H-1B data, no CSV import (v1.1)
-- [ ] Career-page matching: scan all jobs on a careers page and highlight 75%+ matches to your resume
 - [ ] Outreach tracker: sent → replied → referred → interview
 - [ ] OPT unemployment-day tracker
 

@@ -64,6 +64,25 @@
         </div>
       </div>
 
+      <!-- Career-page matching: best jobs on this page for your resume -->
+      <section id="match-card" class="card match-card hidden">
+        <div class="card-head">
+          <h3><svg class="ico"><use href="#i-spark"/></svg>Best jobs here for you</h3>
+          <span id="match-count" class="pill"></span>
+        </div>
+        <p id="match-intro" class="muted small"></p>
+        <button id="match-run" class="btn btn-primary btn-block"><svg class="ico"><use href="#i-search"/></svg>Find my best matches</button>
+        <div id="match-progress" class="match-progress hidden"><div class="bar"><span></span></div><p class="muted small"></p></div>
+        <div id="match-filters" class="chips hidden">
+          <button class="chip-btn on" data-min="75">75%+</button>
+          <button class="chip-btn" data-min="60">60%+</button>
+          <button class="chip-btn" data-min="0">All</button>
+          <button id="match-hide-skip" class="chip-btn">Hide "no sponsorship"</button>
+        </div>
+        <p id="match-note" class="muted small hidden"></p>
+        <ol id="match-list" class="match-list"></ol>
+      </section>
+
       <section id="state-empty" class="empty">
         <div class="empty-ico"><svg class="ico"><use href="#i-job"/></svg></div>
         <h2>Open any job posting</h2>
@@ -296,6 +315,7 @@
   <script src="prompts.js"></script>
   <script src="config.js"></script>
   <script src="ai.js"></script>
+  <script src="careers.js"></script>
   <script src="sidepanel.js"></script>
 </body>
 </html>

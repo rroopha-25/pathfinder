@@ -7,6 +7,7 @@ const SPONSOR_RULES = [
   { type: 'negative', label: 'Security clearance required', re: /\b(security|secret|ts\/sci)\s+clearance\b/i },
   { type: 'positive', label: 'Mentions offering sponsorship', re: /\b(will|can|able to|do|does|happy to)\s+(provide|offer|support)?\s*(visa\s+|h-?1b\s+)?sponsor/i },
   { type: 'positive', label: 'Sponsorship available', re: /\b(visa|h-?1b)\s+sponsorship\s+(is\s+)?(available|provided|offered)/i },
+  { type: 'positive', label: 'Mentions offering sponsorship', re: /\bwe\s+(do\s+|gladly\s+|proudly\s+)?sponsor\s+(h-?1b|visas?|work\s+visas?|employment)/i },
   { type: 'positive', label: 'H-1B transfer mentioned', re: /\bh-?1b\s+transfer/i },
 ];
 
