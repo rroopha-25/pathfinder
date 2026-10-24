@@ -95,7 +95,7 @@ Pathfinder reads the posting **and** checks the company's real H-1B filings from
 ### 4. Best jobs for you on any careers page
 Open a company's careers page and click **Find my best matches**. Pathfinder reads every job listed, scores each one against your resume, and shows your **75%+ matches first**, each with a sponsorship check and the required skills you're missing.
 
-- Reads whole job boards in one go on **Greenhouse, Lever, Ashby, Workday and SmartRecruiters**, including boards embedded in a company's own site.
+- Reads whole job boards in one go on **Greenhouse, Lever, Ashby, Workday, SmartRecruiters and Eightfold** (e.g. Netflix), including boards embedded in a company's own site.
 - On other career pages, reads each linked job politely (3 at a time) or uses the description already on the page.
 - Filters: 75%+, 60%+ or all; hide jobs that say "no sponsorship". Runs only when you click.
 

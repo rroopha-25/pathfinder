@@ -98,6 +98,21 @@ injection molding, tolerance stack-up. Must be a U.S. citizen required due to ex
   eq(w.findJobListings().ats, { type: 'workday', host: 'bigco.wd1.myworkdayjobs.com', tenant: 'bigco', site: 'External' });
   w.performance.getEntriesByType = () => [{ name: 'https://api.smartrecruiters.com/v1/companies/BigCo1/postings?offset=0' }];
   eq(w.findJobListings().ats, { type: 'smartrecruiters', slug: 'BigCo1' });
+  w = page('<body><div>Director, FP&amp;A</div></body>', 'https://explore.jobs.netflix.net/careers?domain=netflix.com&sort_by=relevance&jobIndex=3&job_index=3&query=analyst');
+  eq(w.findJobListings().ats, { type: 'eightfold', host: 'explore.jobs.netflix.net', domain: 'netflix.com', params: { sort_by: 'relevance', query: 'analyst' } });
+  const efCalls = [];
+  const ef = await w.loadAtsJobs({ type: 'eightfold', host: 'explore.jobs.netflix.net', domain: 'netflix.com', params: { query: 'analyst' } }, { fetchFn: async (url) => {
+    efCalls.push(url);
+    const body = /v2\/jobs\?/.test(url)
+      ? { count: 12, positions: (url.includes('start=0') ? [...Array(10)] : [...Array(2)]).map((_, i) => ({ id: (url.includes('start=0') ? 0 : 10) + i, name: 'Role ' + i, location: 'Los Gatos, CA', job_description: '', canonicalPositionUrl: 'https://explore.jobs.netflix.net/careers/job/' + i })) }
+      : { name: 'Role X', job_description: '<p>At Netflix we entertain the world.</p>' };
+    return { ok: true, status: 200, json: async () => body };
+  } });
+  assert.strictEqual(ef.length, 12);
+  assert.strictEqual(ef.total, 12);
+  assert.strictEqual(ef[0].company, 'Netflix');
+  assert.strictEqual(ef[0].text, 'At Netflix we entertain the world.');
+  assert.ok(efCalls[0].includes('query=analyst') && efCalls[0].includes('domain=netflix.com') && efCalls.some((u) => /v2\/jobs\/\d+\?domain=netflix.com/.test(u)));
   w = page('<body><a href="/jobs/view/123">Analyst</a></body>', 'https://www.linkedin.com/jobs/search/');
   assert.ok(w.findJobListings().board);
   eq(w.atsFromLinks([{ url: 'https://jobs.lever.co/acme/0f1e2d3c-4b5a-6978-8a9b-0c1d2e3f4a5b' }]), { type: 'lever', slug: 'acme' });

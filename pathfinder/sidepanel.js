@@ -984,7 +984,8 @@ async function runMatches() {
   if (!state.resume) { showTab('settings'); $('resume-file').scrollIntoView?.({ block: 'center' }); return; }
   // Permission must be asked right away (inside the click), before any other await.
   const ats = listing.ats || atsFromLinks(listing.links);
-  const origins = ats ? [] : linkOrigins(listing.links.slice(0, MATCH_LIMITS.pages));
+  // ATS boards on known hosts are already allowed; company-hosted boards (Eightfold) and plain pages need the site.
+  const origins = ats ? (ats.type === 'eightfold' ? [`https://${ats.host}/*`] : []) : linkOrigins(listing.links.slice(0, MATCH_LIMITS.pages));
   if (origins.length) {
     const ok = await chrome.permissions.request({ origins }).catch(() => false);
     if (!ok) { toast('Pathfinder needs permission to read the job pages on this site.'); logEvent('career_match_denied', { host: listing.host }); return; }

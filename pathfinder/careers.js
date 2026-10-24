@@ -38,12 +38,23 @@ function findJobListings() {
     if (x.hostname === 'api.smartrecruiters.com' && (m = p.match(/\/companies\/([^/]+)\/postings/))) return { type: 'smartrecruiters', slug: m[1] };
     return null;
   };
-  let ats = atsFrom(here);
+  // Eightfold-powered career sites (e.g. explore.jobs.netflix.net/careers?domain=netflix.com)
+  const eightfold = (u) => {
+    let x; try { x = new URL(u, here); } catch (e) { return null; }
+    if (!/\/api\/apply\/v2\/jobs/.test(x.pathname) && !(/\/careers\/?$/.test(x.pathname) && x.searchParams.get('domain'))) return null;
+    const domain = x.searchParams.get('domain') || new URL(here).searchParams.get('domain');
+    if (!domain) return null;
+    const page = new URL(here);
+    const params = {};
+    for (const [k, v] of page.searchParams) if (!/^(job_?index|pid|domain|start|num)$/i.test(k)) params[k] = v;
+    return { type: 'eightfold', host: x.hostname, domain, params };
+  };
+  let ats = atsFrom(here) || eightfold(here);
   if (!ats) {
     for (const el of document.querySelectorAll('iframe[src], script[src]')) { ats = atsFrom(el.getAttribute('src')) || apiFrom(el.src); if (ats) break; }
   }
   const resources = (performance.getEntriesByType ? performance.getEntriesByType('resource') : []).map((e) => e.name);
-  if (!ats) for (const r of resources) { ats = apiFrom(r); if (ats) break; }
+  if (!ats) for (const r of resources) { ats = apiFrom(r) || eightfold(r); if (ats) break; }
   const apiHosts = [...new Set(resources.filter((r) => /job|career|posting|recruit|talent|requisition/i.test(r)).map((r) => { try { return new URL(r).hostname; } catch (e) { return ''; } }))].slice(0, 12);
 
   // Links that look like individual job postings.
@@ -213,6 +224,32 @@ async function loadAtsJobs(ats, { fetchFn = fetch, onProgress = () => {} } = {})
       url: j.jobUrl, company: titleCase(ats.slug), text: j.descriptionPlain || htmlToText(j.descriptionHtml || ''),
     }));
   }
+  if (ats.type === 'eightfold') {
+    const base = `https://${ats.host}/api/apply/v2/jobs`;
+    const list = [];
+    let total = 0;
+    for (let start = 0; start < MATCH_LIMITS.workday; start += 10) {
+      const q = new URLSearchParams({ ...(ats.params || {}), domain: ats.domain, start: String(start), num: '10' });
+      if (!q.get('sort_by')) q.set('sort_by', 'relevance');
+      const page = await getJson(fetchFn, `${base}?${q}`, { headers: { accept: 'application/json' } });
+      total = page.count || total;
+      list.push(...(page.positions || []));
+      if (!page.positions || page.positions.length < 10 || list.length >= total) break;
+    }
+    const out = [];
+    await runPool(list.slice(0, MATCH_LIMITS.workday), async (p, i) => {
+      const d = p.job_description ? p : await getJson(fetchFn, `${base}/${p.id}?domain=${encodeURIComponent(ats.domain)}`, { headers: { accept: 'application/json' } }).catch(() => p);
+      out[i] = {
+        title: d.name || p.name, location: d.location || p.location || '',
+        url: d.canonicalPositionUrl || p.canonicalPositionUrl || `https://${ats.host}/careers/job/${p.id}`,
+        company: titleCase(ats.domain.split('.')[0]), text: htmlToText(d.job_description || ''),
+      };
+      onProgress(out.filter(Boolean).length, Math.min(list.length, MATCH_LIMITS.workday));
+    });
+    const res = out.filter(Boolean);
+    res.total = total;
+    return res;
+  }
   if (ats.type === 'smartrecruiters') {
     const base = `https://api.smartrecruiters.com/v1/companies/${encodeURIComponent(ats.slug)}/postings`;
     const list = (await getJson(fetchFn, base + '?limit=100')).content || [];
@@ -305,7 +342,7 @@ async function collectJobs(listing, { fetchFn = fetch, onProgress = () => {}, fa
   if (ats) {
     try {
       const jobs = await loadAtsJobs(ats, { fetchFn, onProgress });
-      if (jobs.length) return { jobs, source: ats.type, total: jobs.length };
+      if (jobs.length) return { jobs, source: ats.type, total: Math.max(jobs.total || 0, jobs.length) };
     } catch (e) { /* fall back to reading the pages */ }
   }
   const links = listing.links.slice(0, MATCH_LIMITS.pages);
