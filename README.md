@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img alt="Chrome Web Store" src="https://img.shields.io/badge/Chrome%20Web%20Store-live-4f46e5">
+  <a href="https://chromewebstore.google.com/detail/abmjmkgdmifpioikgdlegdkgklohbfoh"><img alt="Chrome Web Store" src="https://img.shields.io/badge/Chrome%20Web%20Store-add%20to%20Chrome-4f46e5"></a>
   <img alt="Chrome Manifest V3" src="https://img.shields.io/badge/Chrome-Manifest%20V3-1a73e8">
   <img alt="Tests" src="https://img.shields.io/badge/tests-passing-0f7a55">
   <img alt="Privacy" src="https://img.shields.io/badge/data-stays%20in%20your%20browser-56627a">
@@ -134,9 +134,8 @@ flowchart LR
 ## Install
 
 ### From the Chrome Web Store (recommended)
-1. Open the [Chrome Web Store](https://chromewebstore.google.com) and search **"Pathfinder: Job Search for International Students"**.
-2. Click **Add to Chrome**, then pin it (puzzle icon → pin).
-3. Open any job posting and click the Pathfinder icon. The side panel opens.
+1. **[Add Pathfinder to Chrome](https://chromewebstore.google.com/detail/abmjmkgdmifpioikgdlegdkgklohbfoh)**, then pin it (puzzle icon → pin).
+2. Open any job posting or company careers page and click the Pathfinder icon. The side panel opens.
 
 > Chrome may show "Proceed with caution" for new extensions. That's normal for a new developer; it goes away as the extension builds a track record.
 
